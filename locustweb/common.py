@@ -8,7 +8,7 @@ from logging.handlers import TimedRotatingFileHandler
 import redis
 import requests
 import sys
-from Interface import firstLevel
+
 
 
 def log(name, err):
@@ -42,30 +42,9 @@ def exportTicket(num=1):
         except:pass
     return ticket
 
-def checklive(num=1):
-    '''
-    :param num:获取正直播的数量
-    :return:
-    '''
-    liveID=[]
-    try:
-        data=requests.post(url="https://test3.txdsd.com/platform-rest/service.jws", json=firstLevel[0][1],timeout=3).json()
-        listdata=data['b']['data']['liveList']
-        for k,i in enumerate(listdata):
-            if i['state']==1:
-                liveID.append(i['liveId'])
-            if k>5 or len(liveID)>num:
-                break
-        if liveID==[]:
-            print >> sys.stderr,u'目前沒有正在直播的直播间'
-    except:
-         print >> sys.stderr,u'获取直播间信息失败'
-
-    return liveID
 
 
 cf = ConfigParser.ConfigParser()
-
 class cfg():
     def __init__(self,file):
         self.file=file
@@ -92,3 +71,6 @@ class cfg():
         cf.read(self.file)
         text=cf.get(name,key)
         assert text==str(content)#检查是否写入成功
+
+
+
