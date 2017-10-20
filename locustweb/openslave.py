@@ -34,6 +34,11 @@ def checkPacge():
     except ImportError:
         warnings.warn('install the gevent python package')
         os.system('pip install gevent')
+    try:
+        import openpyxl
+    except ImportError:
+        warnings.warn('install the gevent python package')
+        os.system('pip install openpyxl')
 
 def ThreadStartone(method, num):
     Threads=[]
@@ -48,11 +53,9 @@ def ThreadStartone(method, num):
     for t in Threads:
         t.join()
         print >> sys.stderr,t
-# print("locust --master -f {0}/start.py".format(os.getcwd()))
-# os.system("locust --master -f {0}/start.py".format(os.getcwd()))
 
 def opencpu():
-        subprocess.call("locust --slave -f {0}/test.py --master-host=10.10.30.50".format(os.path.dirname(os.path.realpath(__file__))),shell = True)
+        subprocess.call("locust --slave -f {0}/test.py".format(os.getcwd()),shell = True)
 
 
 if __name__ == '__main__':

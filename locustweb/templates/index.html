@@ -5,187 +5,107 @@
 {% block content %}
 
 <div class="box">
-<table class="bordered">
-    <form action="/index" method="post" name = "form" enctype='application/json'>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>接口名称</th>
-        <th>特殊请求参数“b”</th>
-        <th>版本号version</th>
-        <th>全选<input type="checkbox" onclick="swapCheck()"/></th>
-    </tr>
-    </thead>
-    {%for data in datalist%}
-    <tr>
-        <td>{{data[0]}}</td>
-        <td>{{data[1]}}</td>
-        <td><div class="wrap"><a ondblclick="ShowElement(this)" name="keydata" >{{data[2]}}</a></div></td>
-        <td><a ondblclick="ShowElement(this)" name="version" > {{data[3]}}</a></td>
-        {%if data[4]==1%}
-        <td><input  type="checkbox" name = "black" value={{data[4]}} checked="checked" style="margin-bottom:5px;" /></td>
-        {% else %}
-        <td><input type="checkbox" name = "black" value={{data[4]}} style="margin-bottom:5px;" /></td>
-        {%endif%}
-    </tr>
-    {%endfor%}
-    <tr>
-        <td colspan="5" align="right">
-            <input class="btn btn-primary" type = "submit" name = "tijiao" value = "保存配置" onclick="check_black();">
-        </td>
+    <table class="bordered">
+        <form action="/index" method="post" name="form" enctype='application/json'>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>接口名称</th>
+                <th>特殊请求参数“b”</th>
+                <th>版本号version</th>
+                <th>全选<input type="checkbox" onclick="swapCheck()"/></th>
+            </tr>
+            </thead>
+            {%for data in datalist%}
+            <tr>
+                <td>{{data[0]}}</td>
+                <td>{{data[1]}}</td>
+                <td>
+                    <div class="wrap"><a ondblclick="ShowElement(this)" name="keydata">{{data[2]}}</a></div>
+                </td>
+                <td><a ondblclick="ShowElement(this)" name="version"> {{data[3]}}</a></td>
+                {%if data[4]==1%}
+                <td><input type="checkbox" name="black" value={{data[4]}} checked="checked" style="margin-bottom:5px;"/>
+                </td>
+                {% else %}
+                <td><input type="checkbox" name="black" value={{data[4]}} style="margin-bottom:5px;"/></td>
+                {%endif%}
+            </tr>
+            {%endfor%}
+            <tr>
+                <td colspan="5" align="right">
+                    <input class="btn btn-primary" type="submit" name="tijiao" value="保存配置" onclick="check_black();">
+                </td>
 
-    </tr>
-{#        <td colspan="5"> <div class=error><font color="#FF0000">{{get_flashed_messages()[0]}}</font></div></td>>#}
-    </form >
-</table>
+            </tr>
+            {#
+            <td colspan="5">
+                <div class=error><font color="#FF0000">{{get_flashed_messages()[0]}}</font></div>
+            </td>
+            >#}
+        </form>
+    </table>
 
 
+    <table class="zebra">
+        <thead>
+        <tr>
+            <th>名称</th>
+            <th>参数</th>
+        </tr>
+        </thead>
 
-<table class="zebra">
-    <thead>
-    <tr>
-        <th>名称</th>
-        <th>参数</th>
-    </tr>
-    </thead>
-
-    {% for config in configdata %}
+        {% for config in configdata %}
         <tr>
             <td>{{ config }}</td>
             <td>{{ configdata[config] }}</td>
         </tr>
-    {% endfor %}
-    <td colspan="4" align="right">
-        <form action="/index" method="post">
-            <input class="btn btn-primary" type = "submit" name = "test" value = "测试所选接口" onclick="Openloader();">
-            {% if louststatus %}
-                <input class="btn btn-danger" type = "submit" name = "killlocust" value = "停止locust服务" onclick="Openloader();">
-            {% else %}
-                <input class="btn btn-success" type = "submit" name = "runlocust" value = "启动locust服务" onclick="Openloader();">
-            {%endif%}
+        {% endfor %}
+        <td colspan="4" align="right">
+            <form action="/index" method="post">
+                <input class="btn btn-primary" type="submit" name="ticket" value="刷新登录信息" onclick="Openloader();">
+                <input class="btn btn-primary" type="submit" name="test" value="测试所选接口" onclick="Openloader();">
+                {% if louststatus %}
+                <input class="btn btn-danger" type="submit" name="killlocust" value="停止locust服务"
+                       onclick="Openloader();">
+                {% else %}
+                <input class="btn btn-success" type="submit" name="runlocust" value="启动locust服务"
+                       onclick="Openloader();">
+                {%endif%}
 
-        </form>
-    </td>
-<tr>
-<td colspan="4" align="right">
-    <font color="#FF0000">保存配置后，建议先测试接口是否通过，再启动服务</font>
-</td>
-</tr>
+            </form>
+        </td>
+        <tr>
+            <td colspan="4" align="right">
+                <font color="#FF0000">保存配置后，建议先测试接口是否通过，再启动服务</font>
+            </td>
+        </tr>
 
-</table>
-{% for message in get_flashed_messages(with_categories=True) %}
-        {% if message %}
-            <div class="myalert" id="myalert">
-                <div id="myAlert" class="alert alert-{{ message[0] }}">
-                <a href="#" class="close" data-dismiss="alert">&times;</a>
-                    {{message[1]}}
-                </div>
-            </div>
-        {% endif %}
+    </table>
+    {% for message in get_flashed_messages(with_categories=True) %}
+    {% if message %}
+    <div class="myalert">
+        <div id="myAlert" class="alert alert-{{ message[0] }}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{message[1]}}
+        </div>
+    </div>
+    {% endif %}
     {% endfor %}
 </div>
 
 <div class="container">
-  <section>
-    <div class="loader loader-4" id="loader-4"></div>
-  </section>
+    <section>
+        <div class="loader loader-4" id="loader-4"></div>
+    </section>
 
 </div>
 
 {%if status%}
 <SCRIPT LANGUAGE="javascript">
-window.open ('http://localhost:8089/')
+    window.open('http://localhost:8089/')
 </SCRIPT>
 {%endif%}
-
-<script type="text/javascript">
-    function ShowElement(element) {
-        var oldhtml = element.innerHTML;
-        //创建新的input元素
-        var newobj = document.createElement('input');
-        //为新增元素添加类型
-        newobj.type = 'text';
-        //为新增元素添加value值
-        newobj.value = oldhtml;
-        //为新增元素添加光标离开事件
-        newobj.onblur = function() {
-            //当触发时判断新增元素值是否为空，为空则不修改，并返回原有值
-            element.innerHTML = this.value == oldhtml ? oldhtml : this.value;
-            //当触发时设置父节点的双击事件为ShowElement
-            element.setAttribute("ondblclick", "ShowElement(this);");
-        };
-        //设置该标签的子节点为空
-        element.innerHTML = '';
-        //添加该标签的子节点，input对象
-        element.appendChild(newobj);
-        //设置选择文本的内容或设置光标位置（两个参数：start,end；start为开始位置，end为结束位置；如果开始位置和结束位置相同则就是光标位置）
-        newobj.setSelectionRange(0, oldhtml.length);
-        //设置获得光标
-        newobj.focus();
-
-        //设置父节点的双击事件为空
-        newobj.parentNode.setAttribute("ondblclick", "");
-
-    }
-</script>
-
-
-<script>
-function Openloader(){
-document.getElementById("loader-4").style.display="block";
-}
-</script>
-
-<script type="text/javascript">
-//页面取到选中的值
-function check_black()
-{
-    document.getElementById("loader-4").style.display="block";
-    var myForm = document.forms['form'];
-    var blackName = document.getElementsByName("black");
-    var keydataName = document.getElementsByName("keydata");
-    var version = document.getElementsByName("version");
-    var input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'keydata';
-    var myjson={};
-
-    for(var k = 0; k < keydataName.length; k++)
-    {
-        var mycars=[];
-        if (blackName[k].checked==true){
-             mycars= [keydataName[k].innerText,version[k].innerText,1];
-        }else {
-             mycars = [keydataName[k].innerText,version[k].innerText,0];
-        }
-        myjson[k+1] = mycars;
-    }
-
-    input.value=JSON.stringify(myjson);
-    myForm.appendChild(input);
-    myForm.submit();
-}
-</script>
-
-
-
-<script type="text/javascript">
-        //checkbox 全选/取消全选
-        var isCheckAll = false;
-        function swapCheck() {
-            if (isCheckAll) {
-                $("input[type='checkbox']").each(function() {
-                    this.checked = false;
-                });
-                isCheckAll = false;
-            } else {
-                $("input[type='checkbox']").each(function() {
-                    this.checked = true;
-                });
-                isCheckAll = true;
-            }
-        }
-    </script>
 
 
 
