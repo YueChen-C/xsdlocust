@@ -4,108 +4,164 @@
 
 {% block content %}
 
-<div class="box">
-    <table class="bordered">
-        <form action="/index" method="post" name="form" enctype='application/json'>
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>接口名称</th>
-                <th>特殊请求参数“b”</th>
-                <th>版本号version</th>
-                <th>全选<input type="checkbox" onclick="swapCheck()"/></th>
-            </tr>
-            </thead>
-            {%for data in datalist%}
-            <tr>
-                <td>{{data[0]}}</td>
-                <td>{{data[1]}}</td>
-                <td>
-                    <div class="wrap"><a ondblclick="ShowElement(this)" name="keydata">{{data[2]}}</a></div>
-                </td>
-                <td><a ondblclick="ShowElement(this)" name="version"> {{data[3]}}</a></td>
-                {%if data[4]==1%}
-                <td><input type="checkbox" name="black" value={{data[4]}} checked="checked" style="margin-bottom:5px;"/>
-                </td>
-                {% else %}
-                <td><input type="checkbox" name="black" value={{data[4]}} style="margin-bottom:5px;"/></td>
-                {%endif%}
-            </tr>
-            {%endfor%}
+    <div class="box">
+        <table class="bordered">
+            <form action="/" method="post" name="form" enctype='application/json'>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>接口名称</th>
+                    <th>特殊请求参数“b”</th>
+                    <th>版本号version</th>
+                    <th>全选<input type="checkbox" onclick="swapCheck()"/></th>
+                </tr>
+                </thead>
+                {% for data in datalist %}
+                    <tr>
+                        <td><a name="Interfaceid" style="color: #000000">{{ data[0] }}</a></td>
+                        <td><a name="Interfacename" onclick="Interfacedetails(this)"
+                               style="cursor: pointer;">{{ data[1] }}</a></td>
+                        <td>
+                            <div class="wrap"><a ondblclick="ShowElement(this)" name="keydata">{{ data[2] }}</a></div>
+                        </td>
+                        <td><a ondblclick="ShowElement(this)" name="version"> {{ data[3] }}</a></td>
+                        {% if data[4]==1 %}
+                            <td><input type="checkbox" name="black" value={{ data[4] }} checked="checked"
+                                       style="margin-bottom:5px;"/>
+                            </td>
+                        {% else %}
+                            <td><input type="checkbox" name="black" value={{ data[4] }} style="margin-bottom:5px;"/>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </form>
             <tr>
                 <td colspan="5" align="right">
-                    <input class="btn btn-primary" type="submit" name="tijiao" value="保存配置" onclick="check_black();">
+                    <button class="btn btn-primary" data-toggle="modal" onclick="addInterface()" > 新增接口</button>
+                    <button class="btn btn-primary" data-toggle="modal" onclick="confirm()"> 删除接口</button>
+                    <input class="btn btn-primary" type="submit" name="tijiao" value="保存配置"
+                           onclick="check_black();">
                 </td>
 
             </tr>
-            {#
-            <td colspan="5">
-                <div class=error><font color="#FF0000">{{get_flashed_messages()[0]}}</font></div>
-            </td>
-            >#}
+
+        </table>
+
+        <form method="post" action="/AddInterface" class="form-horizontal" role="form" id="AddInterface"
+              onsubmit="return check_form()"
+              style="margin: 20px;">
+            <div class="modal fade" id="addInterface" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                                &times;
+                            </button>
+                            <h4 class="modal-title" id="myModalLabel">
+                                用户信息
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <form class="form-horizontal" role="form">
+                                <div class="form-group">
+                                    <label for="Interfacename" class="col-sm-3 control-label">接口名称</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="Interfacename" name="Interfacename"
+                                               value=""
+                                               placeholder="输入接口名称">
+                                        <input type="text" class="form-control" id="Interfaceid" name="Interfaceid"
+                                               value=""
+                                               placeholder="接口id"  style="display:none">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="lastjson" class="col-sm-3 control-label">请求json</label>
+                                    <div class="col-sm-9">
+                                       <textarea rows="10" class="form-control" name="Interfacjson" id="Interfacjson"
+                                                 placeholder="输入请求数据JSON串"></textarea>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                            <button id="tijiao" type="button" class="btn btn-primary" onclick="check_form('Add')"
+                                    style="display:none">提交
+                            </button>
+                            <button id="baocun" type="button" class="btn btn-primary" onclick="check_form('Save')" style="display:none">
+                                保存
+                            </button>
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal -->
+            </div>
         </form>
-    </table>
 
 
-    <table class="zebra">
-        <thead>
-        <tr>
-            <th>名称</th>
-            <th>参数</th>
-        </tr>
-        </thead>
+        <table class="zebra">
+            <thead>
+            <tr>
+                <th>名称</th>
+                <th>参数</th>
+            </tr>
+            </thead>
 
-        {% for config in configdata %}
-        <tr>
-            <td>{{ config }}</td>
-            <td>{{ configdata[config] }}</td>
-        </tr>
-        {% endfor %}
-        <td colspan="4" align="right">
-            <form action="/index" method="post">
-                <input class="btn btn-primary" type="submit" name="ticket" value="刷新登录信息" onclick="Openloader();">
-                <input class="btn btn-primary" type="submit" name="test" value="测试所选接口" onclick="Openloader();">
-                {% if louststatus %}
-                <input class="btn btn-danger" type="submit" name="killlocust" value="停止locust服务"
-                       onclick="Openloader();">
-                {% else %}
-                <input class="btn btn-success" type="submit" name="runlocust" value="启动locust服务"
-                       onclick="Openloader();">
-                {%endif%}
-
-            </form>
-        </td>
-        <tr>
+            {% for config in configdata %}
+                <tr>
+                    <td>{{ config }}</td>
+                    <td>{{ configdata[config] }}</td>
+                </tr>
+            {% endfor %}
             <td colspan="4" align="right">
-                <font color="#FF0000">保存配置后，建议先测试接口是否通过，再启动服务</font>
+                <form action="/" method="post">
+                    <input class="btn btn-primary" type="submit" name="ticket" value="刷新登录信息" onclick="Openloader();">
+                    <input class="btn btn-primary" type="submit" name="test" value="测试所选接口" onclick="Openloader();">
+                    {% if louststatus %}
+                        <input class="btn btn-danger" type="submit" name="killlocust" value="停止locust服务"
+                               onclick="Openloader();">
+                    {% else %}
+                        <input class="btn btn-success" type="submit" name="runlocust" value="启动locust服务"
+                               onclick="Openloader();">
+                    {% endif %}
+
+                </form>
             </td>
-        </tr>
+            <tr>
+                <td colspan="4" align="right">
+                    <font color="#FF0000">保存配置后，建议先测试接口是否通过，再启动服务</font>
+                </td>
+            </tr>
 
-    </table>
-    {% for message in get_flashed_messages(with_categories=True) %}
-    {% if message %}
-    <div class="myalert">
-        <div id="myAlert" class="alert alert-{{ message[0] }}">
-            <a href="#" class="close" data-dismiss="alert">&times;</a>
-            {{message[1]}}
-        </div>
+        </table>
+        {% for message in get_flashed_messages(with_categories=True) %}
+            {% if message %}
+                <div class="myalert">
+                    <div id="myAlert" class="alert alert-{{ message[0] }}">
+                        <a href="#" class="close" data-dismiss="alert">&times;</a>
+                        {{ message[1] }}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
     </div>
+
+    <div class="container">
+        <section>
+            <div class="loader loader-4" id="loader-4"></div>
+        </section>
+
+    </div>
+
+    {% if status %}
+        <SCRIPT LANGUAGE="javascript">
+
+            window.open('http://{{ status }}/')
+        </SCRIPT>
+
+
     {% endif %}
-    {% endfor %}
-</div>
-
-<div class="container">
-    <section>
-        <div class="loader loader-4" id="loader-4"></div>
-    </section>
-
-</div>
-
-{%if status%}
-<SCRIPT LANGUAGE="javascript">
-    window.open('http://localhost:8089/')
-</SCRIPT>
-{%endif%}
 
 
 

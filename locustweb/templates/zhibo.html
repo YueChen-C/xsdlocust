@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}星时代性能测试{% endblock %}
+
+{% block content %}
+
+<div class="box">
+    <table class="bordered">
+        <form action="/zhibo" method="post" name="form" enctype='application/json'>
+            <thead>
+            <tr>
+                <th>直播间ID</th>
+                <th>直播间名称</th>
+                <th>直播间人数</th>
+                <th></th>
+            </tr>
+            </thead>
+            {%for room in roomlist%}
+            <tr>
+                <td>{{room[0]}}</td>
+                <td>{{room[1]}}</td>
+                <td>{{room[2]}}</td>
+                <td><input type="radio" name="liveid" value={{room[0]}} checked="checked"></td>
+            </tr>
+            {%endfor%}
+
+
+        </form>
+    </table>
+
+
+    <table class="zebra">
+        <thead>
+        <tr>
+            <th>测试功能点</th>
+            <th>是否执行</th>
+        </tr>
+        </thead>
+        <tr>
+            <td>随机普通消息</td>
+            <td><input type="checkbox" name="message" style="margin-bottom:5px;" value="putong" checked="checked"/></td>
+        </tr>
+        <tr>
+            <td>随机弹幕消息</td>
+            <td><input type="checkbox" name="message" style="margin-bottom:5px;" value="danmu" checked="checked"/></td>
+        </tr>
+        <tr>
+            <td>随机发送礼物</td>
+            <td><input type="checkbox" name="message" style="margin-bottom:5px;" value="liwu" checked="checked"/></td>
+        </tr>
+
+    </table>
+    <div class="number">
+        <form class="form-horizontal" action="/zhibo" method="post" name="number">
+            <div class="group">
+
+                <div class="input-group">
+                    <div class="input-group-addon">用户数量</div>
+                    <div id="people-group" class="">
+                        <input type="text" size="9" class="form-control" id="people" placeholder="在线人数：{{peoplenum}}" value="" disabled>
+                    </div>
+
+                </div>
+                <div class="input-group">
+                    <div class="input-group-addon">执行频率</div>
+                    <div id="frequency-group" class="">
+                        <input type="text" size="9" class="form-control" id="frequency" placeholder="每秒数量" value="10">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-addon">执行时间</div>
+                    <div id="time-group" class="">
+                        <input type="text" size="9" class="form-control" id="time" placeholder="总时间" value="10">
+                    </div>
+                </div>
+
+            </div>
+            <input class="btn btn-primary" type="button" value="执行" onclick="live_telecast();">
+            <input class="btn btn-danger" type="submit" name="kill" value="结束">
+        </form>
+    </div>
+
+    {% for message in get_flashed_messages(with_categories=True) %}
+    {% if message %}
+    <div class="myalert">
+        <div id="myAlert" class="alert alert-{{ message[0] }}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{message[1]}}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+
+<div class="container">
+    <section>
+        <div class="loader loader-4" id="loader-4"></div>
+    </section>
+</div>
+
+
+{% endblock %}

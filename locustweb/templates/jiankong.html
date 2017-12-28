@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}星时代性能测试{% endblock %}
+
+{% block content %}
+
+
+<style>
+    .bs-example {
+        position: relative;
+        padding: 45px 15px 15px;
+        margin: 0 auto;
+        border-color: #e5e5e5 #eee #eee;
+        border-style: solid;
+        border-width: 1px 0;
+        -webkit-box-shadow: inset 0 3px 6px rgba(0, 0, 0, .05);
+        box-shadow: inset 0 3px 6px rgba(0, 0, 0, .05);
+        width: 50%;
+        height: 50%;
+    }
+</style>
+
+<div class="bs-example">
+    <p style="text-align:center"><font size="5">服务器信息</font></p>
+    <table class="table table-hover">
+        <tr>
+            <th width="20%">主机名</th>
+            <td width="50%">test3.txd</td>
+        </tr>
+        <tr>
+            <th width="20%">内核版本</th>
+            <td width="50%">{{system_information['kernel']}}</td>
+        </tr>
+        <tr>
+            <th width="20%">CPU</th>
+            <td width="50%">{{system_information['cpuinfo']}}</td>
+        </tr>
+        <tr>
+            <th width="20%">内存大小</th>
+            <td width="50%">{{system_information['meminfo']}}</td>
+        </tr>
+
+    </table>
+
+
+    <p style="text-align:center"><font size="5">服务器资源状态</font></p>
+    <table class="table table-bordered" id="serverstate">
+
+        <tr>
+            <th>Item</th>
+            <th width="30%">Type</th>
+            <th width="40%">dynamic</th>
+        </tr>
+        <tr>
+            <th rowspan="5" style="vertical-align: middle">系统内存</th>
+        </tr>
+        <tr>
+            <td>总内存</td>
+            <td id="MemTotal"></td>
+        </tr>
+        <tr>
+            <td>内存使用率</td>
+            <td id="percent"></td>
+        </tr>
+        <tr>
+            <td>用户已使用</td>
+            <td id="used"></td>
+        </tr>
+        <tr>
+            <td>缓存大小</td>
+            <td id="Buffers"></td>
+        </tr>
+
+
+        <tr>
+            <th rowspan="7" style="vertical-align: middle">服务器并发数量</th>
+        </tr>
+        <tr>
+            <td>ESTABLISHED</td>
+            <td id="ESTABLISHED"></td>
+        </tr>
+        <tr>
+            <td>CLOSE_WAIT</td>
+            <td id="CLOSE_WAIT"></td>
+        </tr>
+        <tr>
+            <td>TIME_WAIT</td>
+            <td id="TIME_WAIT"></td>
+        </tr>
+
+        <tr>
+            <td>SYN_RECV</td>
+            <td id="SYN_RECV"></td>
+        </tr>
+        <tr>
+            <td>FIN_WAIT1</td>
+            <td id="FIN_WAIT1"></td>
+        </tr>
+        <tr>
+            <td>FIN_WAIT2</td>
+            <td id="FIN_WAIT2"></td>
+        </tr>
+
+
+        <tr>
+            <th rowspan="4" style="vertical-align: middle">服务器网速</th>
+        </tr>
+        <tr>
+            <td>lo</td>
+            <td id="lo"></td>
+        </tr>
+        <tr>
+            <td>eth0</td>
+            <td id="eth0"></td>
+        </tr>
+        <tr>
+            <td>eth1</td>
+            <td id="eth1"></td>
+        </tr>
+
+
+        <tr>
+            <th rowspan="5" style="vertical-align: middle">CPU负载</th>
+        </tr>
+        <tr>
+            <td>1分钟load平均值</td>
+            <td id="lavg_1"></td>
+        </tr>
+        <tr>
+            <td>5分钟load平均值</td>
+            <td id="lavg_5"></td>
+        </tr>
+        <tr>
+            <td>15分钟load平均值</td>
+            <td id="lavg_15"></td>
+        </tr>
+        <tr>
+            <td>活动进程/总进程</td>
+            <td id="nr"></td>
+        </tr>
+
+        <tr>
+            <th rowspan="6" style="vertical-align: middle">redis</th>
+        </tr>
+        <tr>
+            <td>当前的qps</td>
+            <td id="qps"></td>
+        </tr>
+        <tr>
+            <td>键值未命中数量</td>
+            <td id="keyspace_misses"></td>
+        </tr>
+        <tr>
+            <td>连接客户数</td>
+            <td id="connected_clients"></td>
+        </tr>
+        <tr>
+            <td>阻塞连接数</td>
+            <td id="blocked_clients"></td>
+        </tr>
+        <tr>
+            <td>内存使用</td>
+            <td id="used_memory"></td>
+        </tr>
+
+
+        <tr>
+            <th rowspan="2" style="vertical-align: middle">msyql</th>
+        </tr>
+        <tr>
+            <td>msyql连接数</td>
+            <td id="mysqlnum"></td>
+        </tr>
+
+
+    </table>
+
+    <input class="btn btn-primary" type="submit" name="tijiao" value="停止刷新" onclick="stop();">
+
+
+    {% for message in get_flashed_messages(with_categories=True) %}
+    {% if message %}
+    <div class="myalert">
+        <div id="myAlert" class="alert alert-{{ message[0] }}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{message[1]}}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+
+<div class="container">
+    <section>
+        <div class="loader loader-4" id="loader-4"></div>
+    </section>
+</div>
+
+
+<script>
+
+    var timer= setInterval('server()', 3000);
+
+
+    function stop(){
+        clearInterval(timer)
+    }
+
+
+    function server() {
+        $.ajax({
+                    type: 'get',
+                    url: "/getserver",
+                    dataType: 'json',
+                    async: true,
+                    success: function (data) {
+                        var memory = data['memory'];
+
+                        for (var m in memory) {
+                            document.getElementById(m).innerHTML = memory[m];
+                        }
+                        var loadavg = data['loadavg'];
+
+                        for (var l in loadavg) {
+                            document.getElementById(l).innerHTML = loadavg[l];
+                        }
+                        var Average = data['Average'];
+                        for (var a in Average) {
+                            document.getElementById(a).innerHTML = Average[a];
+                        }
+                        var netstat = data['netstat'];
+                        for (var n in netstat) {
+                            if (n == 'CLOSE_WAIT' || n == 'TIME_WAIT') {
+                                document.getElementById(n).style.color = 'red';
+                            }
+                            document.getElementById(n).innerHTML = netstat[n];
+                        }
+
+                        var reidslsit = data['reidslsit'];
+                        for (var r in reidslsit) {
+                            if(reidslsit.length<=1){
+                                document.getElementById(r).style.color = 'red';
+                            }
+                            document.getElementById(r).innerHTML = reidslsit[r];
+
+                        }
+
+                        document.getElementById('mysqlnum').innerHTML = data['mysqlnum'];
+
+
+                    }
+                }
+        )
+    }
+
+
+
+
+</script>
+
+{% endblock %}

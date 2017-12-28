@@ -1,24 +1,22 @@
 # coding=utf-8
 import os
 import random
-
-import openpyxl
-from locust import HttpLocust, TaskSet, task
+import sqlite3
+from locust import TaskSet, HttpLocust, task
 import common
 
 
 def postdata():
-    readpath = os.path.dirname(os.path.realpath(__file__)) + '/interface.xlsx'
-    inwb = openpyxl.load_workbook(readpath)
-    work_name = inwb.get_sheet_by_name('Sheet1')
+    sqlite3conn = sqlite3.connect('locust.db',check_same_thread=False)
+    sqlite3cursors=sqlite3conn.cursor()
+    data=sqlite3cursors.execute('SELECT * FROM Interface').fetchall()
     list = []
-    for row in range(1, work_name.max_row + 1):
-        if work_name.cell(row=row, column=5).value == 1:
-            k2 = work_name.cell(row=row, column=2).value
-            jsondata = eval(work_name.cell(row=row, column=3).value)
-            key = [k2, jsondata]
+    for row in data:
+        if row[3] == 0:
+            key = [row[1], eval(row[2])]
             list.append(key)
     return list
+
 
 
 class WebsiteTasks(TaskSet):
@@ -33,9 +31,15 @@ class WebsiteTasks(TaskSet):
         with self.client.post("/platform-rest/service.jws", json=data[1], name=data[0],
                               catch_response=True) as response:
             if response.status_code == 200:
-                response.success()
+                try:
+                    if response.json()['h']['code']=='0':
+                        response.success()
+                    else:
+                        response.failure(response.text)
+                except Exception as E:
+                    response.failure('requests fail:{0}'.format(E))
             else:
-                response.failure(u'请求失败')
+                response.failure('requests fail:{0}'.format(response.status_code))
 
 
 class WebsiteUser(HttpLocust):

@@ -1,4 +1,6 @@
 
+
+
 *, *:before, *:after {
     box-sizing: border-box;
     margin: 0;
@@ -185,6 +187,21 @@ input.s {
     border-radius: 0 0 6px 0;
 }
 
+.input-group{
+    margin: 10px 0;
+}
+.form-group{
+    margin: 10px 0;
+}
+.form-horizontal .form-group{
+    margin-right: 0;
+    margin-left: 0;
+}
+.number{
+    margin: 3cm 3cm 2cm 32cm;
+    float:left;
+    clear:both;
+}
 .zebra {
     float: right;
     border: solid #ccc 1px;

@@ -6,6 +6,7 @@ import sys,common
 from multiprocessing import cpu_count
 
 import subprocess
+import platform
 
 
 def checkPacge():
@@ -55,11 +56,18 @@ def ThreadStartone(method, num):
         print >> sys.stderr,t
 
 def opencpu():
-        subprocess.call("locust --slave -f {0}/test.py".format(os.getcwd()),shell = True)
+    if 'Windows' in platform.system():
+        retcode = [a for a in os.popen('route print').readlines() if ' 0.0.0.0 ' in a][0].split()[-2].strip()
+        lcoustserver="locust --slave -f {0}/test.py --master-host={1}".format(os.path.dirname(os.path.realpath(__file__)),retcode)
+    else:
+        retcode = subprocess.Popen('''ifconfig eth1 | grep "inet addr" | awk '{ print $2}' | awk -F: '{print $2}\'''', stdout=subprocess.PIPE,stdin=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+        retcode=retcode.stdout.readlines()[0].strip()
+        lcoustserver="locust --slave -f {0}/test.py --master-host={1}".format(os.path.dirname(os.path.realpath(__file__)),retcode)
+    subprocess.call(lcoustserver,shell = True)
 
 
 if __name__ == '__main__':
-    checkPacge()
+    # checkPacge()
     ThreadStartone(opencpu,cpu_count())
 
 

@@ -43,6 +43,7 @@ function check_black() {
     var keydataName = document.getElementsByName("keydata");
     var version = document.getElementsByName("version");
     var input = document.createElement('input');
+    var Interfaceid = document.getElementsByName("Interfaceid");
     input.type = 'hidden';
     input.name = 'keydata';
     var myjson = {};
@@ -54,7 +55,7 @@ function check_black() {
         } else {
             mycars = [keydataName[k].innerText, version[k].innerText, 0];
         }
-        myjson[k + 1] = mycars;
+        myjson[Interfaceid[k].innerHTML] = mycars;
     }
 
     input.value = JSON.stringify(myjson);
@@ -64,9 +65,8 @@ function check_black() {
 
 
 //checkbox 全选/取消全选
-
+var isCheckAll = false;
 function swapCheck() {
-    var isCheckAll = false;
     if (isCheckAll) {
         $("input[type='checkbox']").each(function () {
             this.checked = false;
@@ -79,3 +79,237 @@ function swapCheck() {
         isCheckAll = true;
     }
 }
+
+
+function live_telecast() {
+
+
+    var frequency = document.getElementById("frequency").value;
+    var time = document.getElementById("time").value;
+    var liveidlist = document.getElementsByName('liveid');
+    if (!frequency) {
+        var frequencygroup = document.getElementById('frequency-group');
+        frequencygroup.setAttribute("class", "form-group has-error");
+        return;
+    } else if (!time) {
+        var timegroup = document.getElementById('time-group');
+        timegroup.setAttribute("class", "form-group has-error");
+        return;
+    }
+    document.getElementById("loader-4").style.display = "block";
+
+    var myjson = {};
+    var myForm = document.forms['number'];
+    var message = document.getElementsByName("message");
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    myjson['frequency'] = frequency;
+    myjson['time'] = time;
+
+    var mycars = [];
+    for (var k = 0; k < message.length; k++) {
+        if (message[k].checked == true) {
+            mycars.push(message[k].value)
+        }
+    }
+    for (var i = 0; i < liveidlist.length; i++) {
+        if (liveidlist[i].checked == true) {
+            myjson['liveid'] = liveidlist[i].value;
+        }
+    }
+    myjson['message'] = mycars;
+    input.value = JSON.stringify(myjson);
+    myForm.appendChild(input);
+    myForm.submit();
+}
+
+
+function addInterface() {
+    $("#Interfacename").val('');
+    $("#Interfacjson").val('');
+    $("#baocun").css('display', 'none');
+    $("#tijiao").css('display', 'inline');
+    $("#addInterface").modal("show");
+
+}
+function confirm(fun) {
+    if ($("#myConfirm").length > 0) {
+        $("#myConfirm").remove();
+    }
+    var html = "<div class='modal fade' id='myConfirm' >"
+        + "<div class='modal-backdrop in' style='opacity:0; '></div>"
+        + "<div class='modal-dialog' style='z-index:2901; margin-top:60px; width:400px; '>"
+        + "<div class='modal-content'>"
+        + "<div class='modal-header'  style='font-size:16px; '>"
+        + "<span class='glyphicon glyphicon-envelope'>&nbsp;</span>信息！<button type='button' class='close' data-dismiss='modal'>"
+        + "<span style='font-size:20px;  ' class='glyphicon glyphicon-remove'></span><tton></div>"
+        + "<div class='modal-body text-center' id='myConfirmContent' style='font-size:18px; '>"
+        + "是否确定要删除接口？"
+        + "</div>"
+        + "<div class='modal-footer ' style=''>"
+        + "<button class='btn btn-danger ' id='confirmOk' >确定<tton>"
+        + "<button class='btn btn-info ' data-dismiss='modal'>取消<tton>"
+        + "</div>" + "</div></div></div>";
+    $("body").append(html);
+
+    var Interfaceid = document.getElementsByName("Interfaceid");
+    var blackName = document.getElementsByName("black");
+    var mycars = [];
+    for (var k = 0; k < blackName.length; k++) {
+
+        if (blackName[k].checked == true) {
+            mycars.push(Interfaceid[k].innerText)
+        }
+    }
+
+    if (mycars.length >=1) {
+        $("#myConfirm").modal("show");
+        $("#confirmOk").on("click", function () {
+            $("#myConfirm").modal("hide");
+            $.ajax({
+                url: "/Deleteinterface",
+                type: "POST",
+                data: {"interface": mycars},
+                cache: false,
+                success: function (data) {
+                    if (data['code'] == 0) {
+                        location.reload();
+                    } else {
+                        alert(data['message'])
+                    }
+
+                }
+            })
+        });
+
+    } else {
+        alert("请选择接口")
+    }
+
+
+}
+
+function Deleteinterface() {
+    var Interfaceid = document.getElementsByName("Interfaceid");
+    var blackName = document.getElementsByName("black");
+    var mycars = [];
+    for (var k = 0; k < blackName.length; k++) {
+
+        if (blackName[k].checked == true) {
+            mycars.push(Interfaceid[k].innerText)
+        }
+    }
+
+    if (mycars.length > 1) {
+        $.ajax({
+            url: "/Deleteinterface",
+            type: "POST",
+            data: {"interface": mycars},
+            cache: false,
+            success: function (data) {
+                if (data['code'] == 0) {
+                    location.reload();
+                } else {
+                    alert(data['message'])
+                }
+
+            }
+        })
+
+    } else {
+        alert("请选择接口")
+    }
+
+}
+
+
+function check_form(type) {
+
+    var Interfacename = $.trim($('#Interfacename').val());
+    if (!Interfacename) {
+        alert('用户ID不能为空！');
+        return false;
+    }
+    var Interfacjson = $.trim($('#Interfacjson').val());
+    var cc = Interfacjson.replace(/'/g, "\"");
+    try {
+
+        if (typeof JSON.parse(cc) == "object") {
+            var d = $('#AddInterface').serializeArray();
+            var form_data = {};
+            $.each(d, function () {
+                form_data[this.name] = this.value;
+            });
+
+            if (type == 'Add') {
+                $.ajax(
+                    {
+                        url: "/AddInterface",
+                        data: {"AddInterface": JSON.stringify(form_data)},
+                        type: "post",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data['code'] == 0) {
+                                location.reload();
+                            } else {
+                                alert(data['message'])
+                            }
+                        }
+                    });
+            } else if (type == 'Save') {
+                $.ajax(
+                    {
+                        url: "/Saveinterface",
+                        data: {"Saveinterface": JSON.stringify(form_data)},
+                        type: "post",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data['code'] == 0) {
+                                location.reload();
+                            } else {
+                                alert(data['message'])
+                            }
+                        }
+                    });
+            }
+            $("#addInterface").modal("hide");
+        } else {
+            alert('请输入正确json！');
+        }
+    } catch (e) {
+        alert('请输入正确json！');
+    }
+
+
+}
+
+function Interfacedetails(str) {
+    $("#baocun").css('display', 'inline');
+    $("#tijiao").css('display', 'none');
+    $.ajax({
+        url: "/Interfacedetails",
+        type: "POST",
+        data: {"Interfacedetails": $(str).text()},
+        cache: false,
+        dataType: "json",
+        success: function (data) {
+            try {
+                var json = eval("(" + data + ")");
+                $("#Interfaceid").val(json[0]);
+                $("#Interfacename").val(json[1]);
+                $("#Interfacjson").val(json[2]);
+            } catch (e) {
+                alert(data['message'])
+            }
+        }
+    });
+
+
+    $("#addInterface").modal("show");
+}
+
+
+setTimeout(function () {
+    document.getElementById("myAlert").style.display = "none";
+}, 3000);
