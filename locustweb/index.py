@@ -1,5 +1,9 @@
 # coding=utf8
+#!/usr/bin/python
 import sys
+
+import signal
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 import ConfigParser
@@ -19,6 +23,7 @@ from flask_moment import Moment
 from flask_script import Manager
 from gevent import monkey
 from gevent.pywsgi import WSGIServer
+
 monkey.patch_all()
 
 import common
@@ -26,8 +31,6 @@ import platform
 import sqlite3
 from rongcloud import RongCloud
 import paramiko
-
-
 
 global null
 null = ''
@@ -42,6 +45,7 @@ moment = Moment(app)
 
 cf = ConfigParser.ConfigParser()
 filecfg = os.path.dirname(os.path.realpath(__file__)) + '/config.cfg'
+locustcfg = common.cfg(filecfg, 'locust')
 rediscfg = common.cfg(filecfg, 'redis')
 pool = redis.Redis(host=rediscfg.query('host'), port=rediscfg.query('port'), db=rediscfg.query('db'),
                    password=rediscfg.query('password'))
@@ -50,24 +54,24 @@ linuxcfg = common.cfg(filecfg, 'linux')
 ssh = paramiko.SSHClient()
 ssh.load_system_host_keys()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(hostname=linuxcfg.query('hostname'), username=linuxcfg.query('username'), password=linuxcfg.query('password'), timeout=300,
+ssh.connect(hostname=linuxcfg.query('hostname'), username=linuxcfg.query('username'),
+            password=linuxcfg.query('password'), timeout=300,
             allow_agent=False, look_for_keys=False, port=22)
-
-
 
 db = common.cfg(filecfg, 'mysql')
 conn = pymysql.connect(host=db.query('host'), user=db.query('user'), passwd=db.query('passwd'),
                        db=db.query('db'), charset=db.query('charset'))
 
 
-sqlite3conn = sqlite3.connect('locust.db',check_same_thread=False)
+sqlite3conn = sqlite3.connect('locust.db', check_same_thread=False)
+sqlite3conn.text_factory = str
 
 
 def datalist():
-    sqlite3cursors=sqlite3conn.cursor()
-    text=sqlite3cursors.execute('SELECT * FROM Interface')
+    sqlite3cursors = sqlite3conn.cursor()
+    text = sqlite3cursors.execute('SELECT * FROM Interface')
     list = []
-    for row in  text:
+    for row in text:
         postdata = eval(row[2])
         data = postdata['b']
         version = postdata['h']['version']
@@ -75,6 +79,7 @@ def datalist():
         list.append(key)
     sqlite3cursors.close()
     return list
+
 
 #
 # class rongcloud():
@@ -114,7 +119,6 @@ def datalist():
 #             timer = None
 #             kill = True
 
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     louststatus = False
@@ -124,83 +128,107 @@ def index():
     runserver = request.form.get('runlocust')
     killserver = request.form.get('killlocust')
     ticket = request.form.get('ticket')
-    locustcfg = common.cfg(filecfg, 'locust')
     configdata = locustcfg.cfgdict()
-    if ticket:
-        try:
-            url = locustcfg.query('HOST') + "/platform-rest/service.jws"
-            # 清理ticket
-            keys = pool.keys('h-member-session*') + pool.keys('v-session-appToken*') + pool.keys('v-session-ticket*')
-            if keys:
-                pool.delete(*keys)
-
-            # 更新登录信息
-            ticketnum = locustcfg.query('ticketnum')
-            cursors = conn.cursor()
-            cursors.execute(
-                    "SELECT mobile_phone,login_password FROM member ORDER BY member_id  DESC  LIMIT {0}".format(
-                            ticketnum))
-            dbdata = cursors.fetchall()
-            cursors.close()
-            fail = {}
-            for key in dbdata:
-                login = common.logindata
-                login['b']['loginName'] = key[0]
-                login['b']['loginPassword'] = key[1]
-                data = requests.post(url=url, json=login).json()
-                if data['h']['code'] == '0':
-                    pass
-                else:
-                    fail[key[0]] = (data['h']['message'])
-            if fail:
-                flash(u'警告：更新失败{0}'.format(json.dumps(fail, ensure_ascii=False)), 'danger')
-            else:
-                flash(u'提示：{}条ticket登录信息更新成功'.format(ticketnum), 'warning')
-        except Exception as p:
-            flash(u'警告：更新失败{0}'.format(p), 'danger')
+    # if ticket:
+    #     try:
+    #         url = locustcfg.query('HOST') + "/platform-rest/service.jws"
+    #         # 清理ticket
+    #         keys = pool.keys('h-member-session*') + pool.keys('v-session-appToken*') + pool.keys('v-session-ticket*')
+    #         if keys:
+    #             pool.delete(*keys)
+    #
+    #         # 更新登录信息
+    #         ticketnum = locustcfg.query('ticketnum')
+    #         cursors = conn.cursor()
+    #         cursors.execute(
+    #                 "SELECT mobile_phone,login_password FROM member ORDER BY member_id  DESC  LIMIT {0}".format(
+    #                         ticketnum))
+    #         dbdata = cursors.fetchall()
+    #         cursors.close()
+    #         fail = {}
+    #         for key in dbdata:
+    #             login = common.logindata
+    #             login['b']['loginName'] = key[0]
+    #             login['b']['loginPassword'] = key[1]
+    #             data = requests.post(url=url, json=login).json()
+    #             if data['h']['code'] == '0':
+    #                 pass
+    #             else:
+    #                 fail[key[0]] = (data['h']['message'])
+    #         if fail:
+    #             flash(u'警告：更新失败{0}'.format(json.dumps(fail, ensure_ascii=False)), 'danger')
+    #         else:
+    #             flash(u'提示：{}条ticket登录信息更新成功'.format(ticketnum), 'warning')
+    #     except Exception as p:
+    #         flash(u'警告：更新失败{0}'.format(p), 'danger')
 
     # 检查locust服务是否启动
     for proc in psutil.process_iter(attrs=['pid', 'name']):
-        if 'locust' in proc.info['name'] :
+        if 'locust' in proc.info['name']:
             louststatus = True
 
     # 启动locust服务
     if runserver:
-        try:
+        # try:
             htmldata = datalist()
-            print(os.path.dirname(os.path.realpath(__file__)))
             for proc in psutil.process_iter(attrs=['pid', 'name']):
-                if 'locust' in proc.info['name'] :
+                if 'locust' in proc.info['name']:
                     louststatus = True
                     flash(u'警告：locust服务已经启动，请停止后再启动！', 'danger')
-                    return render_template('index.html', datalist=htmldata, configdata=configdata, louststatus=louststatus)
+                    return render_template('index.html', datalist=htmldata, configdata=configdata,
+                                           louststatus=louststatus)
             if 'Windows' in platform.system():
                 retcode = [a for a in os.popen('route print').readlines() if ' 0.0.0.0 ' in a][0].split()[-2].strip()
-                lcoustserver="locust --master -f {0}/test.py --web-host={1} --web-port=5001".format(os.path.dirname(os.path.realpath(__file__)),retcode)
+                lcoustserver = "locust --master -f {0}/test.py --web-host={1} --web-port=5001".format(
+                    os.path.dirname(os.path.realpath(__file__)), retcode)
             else:
-                retcode = subprocess.Popen('''ifconfig eth1 | grep "inet addr" | awk '{ print $2}' | awk -F: '{print $2}\'''', stdout=subprocess.PIPE,stdin=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
-                retcode=retcode.stdout.readlines()[0].strip()
-                lcoustserver="locust --master -f {0}/test.py --web-host={1} --web-port=5001".format(os.path.dirname(os.path.realpath(__file__)),retcode)
+                retcode = subprocess.Popen('''ifconfig eth1 | grep "inet addr" | awk '{ print $2}' | awk -F: '{print $2}\'''',stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                retcode = retcode.stdout.readlines()[0].strip()
+                lcoustserver = "locust --master -f {0}/test.py --web-host={1} --web-port=5001".format(
+                    os.path.dirname(os.path.realpath(__file__)), retcode)
 
-            subprocess.Popen(lcoustserver,shell=True)
-            subprocess.Popen("python {0}/openslave.py ".format(os.path.dirname(os.path.realpath(__file__))),shell=True)
-            sleep(3)
+
+            subprocess.Popen(lcoustserver, shell=True)
+            sleep(1)
+            subprocess.Popen("python {0}/openslave.py ".format(os.path.dirname(os.path.realpath(__file__))), shell=True)
+            sleep(2)
             louststatus = True
-            status = retcode+':5001'
+            status = retcode + ':5001'
             flash(u'成功：locust服务已经启动', 'success')
             return render_template('index.html', datalist=htmldata, configdata=configdata, louststatus=louststatus,
                                    status=status)
-        except Exception as E:
-            flash(u'警告：locust启动失败 {0}'.format(E))
+        # except Exception as E:
+        #     flash(u'警告：locust启动失败 {0}'.format(E))
 
     # 停止locust服务
     if killserver:
-        for proc in psutil.process_iter(attrs=['pid', 'name']):
-            if 'locust' in proc.info['name'] :
+        psutillist=psutil.process_iter(attrs=['pid', 'name'])
+        for proc in psutillist:
+             if 'locust' in proc.info['name'] :
+
                 p = psutil.Process(proc.info['pid'])
+                print(p.pid)
+                print(p.ppid())
+                # print(psutil.Process(p.ppid()).terminate())
+                # print(p.parent().send_signal('CTRL_C_EVENT'))
+                print(p.children())
                 psutil.Process(p.children()[0].pid).terminate()
-                louststatus = False
-        flash(u'提示：locust服务已经关闭', 'warning')
+            # if 'locust' in proc.info['name']:
+            #     # p = psutil.Process(proc.info['pid'])
+            #     try:
+            #         mProcess.terminate()
+            #         break
+            #         # psutil.Process(proc.info['pid']).terminate()
+            #         # for child in p.children():
+            #         #     psutil.Process(child.pid).terminate()
+            #     except Exception:
+            #         pass
+
+        if len([proc for proc in psutil.process_iter(attrs=['pid', 'name']) if 'locust' in proc.info['name']])<1:
+            louststatus = False
+            flash(u'提示：locust服务已经关闭', 'warning')
+        else:
+            flash(u'提示：locust服务关闭失败请从尝试', 'danger')
 
     # 所选接口测试
     if test:
@@ -208,16 +236,17 @@ def index():
             faillist = {}
             ticketlist = common.exportTicket(num=10)
             if ticketlist:
-                sqlite3cursors=sqlite3conn.cursor()
-                sqlite3text=sqlite3cursors.execute('SELECT * FROM Interface')
+                sqlite3cursors = sqlite3conn.cursor()
+                sqlite3text = sqlite3cursors.execute('SELECT * FROM Interface')
                 ticketdata = random.choice(ticketlist)
-                for row in  sqlite3text:
+                for row in sqlite3text:
                     if row[3] == 1:
                         name = row[1]
                         postdata = eval(row[2])
                         postdata['h']['appToken'] = ticketdata[1]
                         postdata['h']['ticket'] = ticketdata[0]
-                        data = requests.post('https://test3.txdsd.com/platform-rest/service.jws', json=postdata).json()
+                        url = locustcfg.query('HOST') + "/platform-rest/service.jws"
+                        data = requests.post(url, json=postdata).json()
                         if data['h']['code'] == '0':
                             pass
                         else:
@@ -241,12 +270,13 @@ def index():
             hobby = hobby.encode('unicode-escape').decode('string_escape')
             hobby = json.loads(hobby)
             for key, value in hobby.items():
-                sqlite3cursors=sqlite3conn.cursor()
-                sqlite3text=sqlite3cursors.execute('SELECT * FROM Interface WHERE id={0}'.format(key)).fetchall()
+                sqlite3cursors = sqlite3conn.cursor()
+                sqlite3text = sqlite3cursors.execute('SELECT * FROM Interface WHERE id={0}'.format(key)).fetchall()
                 postdata = eval(sqlite3text[0][2])
                 postdata['b'] = eval(value[0].encode('unicode-escape'))
                 postdata['h']['version'] = value[1].encode('unicode-escape')
-                sqlite3cursors.execute('UPDATE Interface SET `postdata`=?,`type`=? WHERE id=? ',(str(postdata),value[2],key))
+                sqlite3cursors.execute('UPDATE Interface SET `postdata`=?,`type`=? WHERE id=? ',
+                                       (str(postdata), value[2], int(key)))
                 sqlite3conn.commit()
                 sqlite3cursors.close()
             flash(u'成功：保存成功', 'success')
@@ -255,70 +285,65 @@ def index():
     htmldata = datalist()
     return render_template('index.html', datalist=htmldata, configdata=configdata, louststatus=louststatus)
 
+
 @app.route('/Deleteinterface', methods=['GET', 'POST'])
 def Deleteinterface():
-    data=request.form.getlist('interface[]')
+    data = request.form.getlist('interface[]')
     try:
-        sqlite3cursors=sqlite3conn.cursor()
+        sqlite3cursors = sqlite3conn.cursor()
         sqlite3cursors.execute("DELETE FROM Interface WHERE id IN ({0});".format(','.join([i for i in data])))
         sqlite3conn.commit()
         sqlite3cursors.close()
-        code={'code':0,'message':'删除成功'}
+        code = {'code': 0, 'message': '删除成功'}
     except Exception as E:
-        code={'code':101,'message':'删除失败:{0}'.format(E)}
+        code = {'code': 101, 'message': '删除失败:{0}'.format(E)}
     return jsonify(code)
-
-
 
 
 @app.route('/AddInterface', methods=['GET', 'POST'])
 def Addinterface():
     try:
-        sqlite3cursors=sqlite3conn.cursor()
-        data=eval(request.form.get('AddInterface'))
-        sqlite3cursors.execute('INSERT INTO Interface(`name`,`postdata`,`type`) VALUES (?,?,?)',(unicode(data['Interfacename']),data['Interfacjson'],1))
+        sqlite3cursors = sqlite3conn.cursor()
+        data = eval(request.form.get('AddInterface'))
+        sqlite3cursors.execute('INSERT INTO Interface(`name`,`postdata`,`type`) VALUES (?,?,?)',
+                               (data['Interfacename'].encode('utf-8'), data['Interfacjson'], 1))
         sqlite3conn.commit()
         sqlite3cursors.close()
-        code={'code':0,'message':'添加成功'}
+        code = {'code': 0, 'message': '添加成功'}
     except Exception as E:
-        code={'code':101,'message':'添加失败:{0}'.format(E)}
+        code = {'code': 101, 'message': '添加失败:{0}'.format(E)}
 
     return jsonify(code)
-
 
 
 @app.route('/Interfacedetails', methods=['GET', 'POST'])
 def Interfacedetails():
     try:
-        data=request.form.get('Interfacedetails')
-        sqlite3cursors=sqlite3conn.cursor()
-        sqlite3text=sqlite3cursors.execute('SELECT * FROM Interface WHERE `name` like ?',(data,)).fetchall()
+        data = request.form.get('Interfacedetails')
+        sqlite3cursors = sqlite3conn.cursor()
+        sqlite3text = sqlite3cursors.execute('SELECT * FROM Interface WHERE `name` LIKE ?',
+                                             (data.encode('utf-8'),)).fetchall()
         sqlite3conn.commit()
         sqlite3cursors.close()
-        return jsonify(json.dumps(sqlite3text[0],ensure_ascii=False))
+        return jsonify(json.dumps(sqlite3text[0], ensure_ascii=False))
     except Exception as E:
-        code={'code':101,'message':'添加失败:{0}'.format(E)}
+        code = {'code': 101, 'message': '添加失败:{0}'.format(E)}
         return jsonify(code)
-
-
 
 
 @app.route('/Saveinterface', methods=['GET', 'POST'])
 def Saveinterface():
     try:
-        data=eval(request.form.get('Saveinterface'))
-        sqlite3cursors=sqlite3conn.cursor()
-        sqlite3cursors.execute('UPDATE Interface SET `postdata`=?,`name`=? WHERE id=? ',(str(data['Interfacjson']),unicode(data['Interfacename']),data['Interfaceid']))
+        data = eval(request.form.get('Saveinterface'))
+        sqlite3cursors = sqlite3conn.cursor()
+        sqlite3cursors.execute('UPDATE Interface SET `postdata`=?,`name`=? WHERE id=? ',
+                               (str(data['Interfacjson']), data['Interfacename'].encode('utf-8'), data['Interfaceid']))
         sqlite3conn.commit()
         sqlite3cursors.close()
-        print(data)
-        code={'code':0,'message':'保存成功' }
+        code = {'code': 0, 'message': '保存成功'}
     except Exception as E:
-        code={'code':101,'message':'保存失败:{0}'.format(E)}
+        code = {'code': 101, 'message': '保存失败:{0}'.format(E)}
     return jsonify(code)
-
-
-
 
 
 # timer = None
@@ -399,19 +424,18 @@ def jiankong():
     system_information = {}
 
     system_command = [
-            ["hostname", "hostname"],
-            ["kernel", "cat /proc/version |cut -f1 -d'('"],
-            ["cpuinfo", "cat /proc/cpuinfo |grep name |cut -f2 -d: \
+        ["hostname", "hostname"],
+        ["kernel", "cat /proc/version |cut -f1 -d'('"],
+        ["cpuinfo", "cat /proc/cpuinfo |grep name |cut -f2 -d: \
             |uniq -c |sed -e 's/^[ \t]*//'"],
-            ["meminfo",
-             " cat /proc/meminfo |head -1|cut -f2- -d':'|sed -e 's/^[ \t]*//'"]]
+        ["meminfo",
+         " cat /proc/meminfo |head -1|cut -f2- -d':'|sed -e 's/^[ \t]*//'"]]
     for i in xrange(len(system_command)):
         stdin, stdout, stderr = ssh.exec_command(system_command[i][1])
         system_information.setdefault(system_command[i][0], stdout.read())
     # ssh.close()
     return render_template('jiankong.html',
                            system_information=system_information)
-
 
 
 @app.route('/getserver')
@@ -427,68 +451,71 @@ def server():
         mem[name] = float(var)
     mem['MemUsed'] = mem['MemTotal'] - mem['MemFree'] - mem['Buffers'] - mem['Cached']
 
-    serverlist={}
-    #记录内存使用率 已使用 总内存和缓存大小
+    serverlist = {}
+    # 记录内存使用率 已使用 总内存和缓存大小
     memory = {}
-    memory['percent'] = str(round(mem['MemUsed'] / mem['MemTotal'] * 100))+'%'
-    memory['used'] = str(round(mem['MemUsed'] / (1024), 2))+' MB'
-    memory['MemTotal'] = str(round(mem['MemTotal'] / (1024), 2))+' MB'
-    memory['Buffers'] = str(round(mem['Buffers'] / (1024), 2))+' MB'
+    memory['percent'] = str(round(mem['MemUsed'] / mem['MemTotal'] * 100)) + '%'
+    memory['used'] = str(round(mem['MemUsed'] / (1024), 2)) + ' MB'
+    memory['MemTotal'] = str(round(mem['MemTotal'] / (1024), 2)) + ' MB'
+    memory['Buffers'] = str(round(mem['Buffers'] / (1024), 2)) + ' MB'
 
-    #cpu负载
+    # cpu负载
     loadavg = {}
     stdin, stdout, stderr = ssh.exec_command('cat /proc/loadavg')
     con = stdout.read().split()
-    loadavg['lavg_1']=con[0]
-    loadavg['lavg_5']=con[1]
-    loadavg['lavg_15']=con[2]
-    loadavg['nr']=con[3]
+    loadavg['lavg_1'] = con[0]
+    loadavg['lavg_5'] = con[1]
+    loadavg['lavg_15'] = con[2]
+    loadavg['nr'] = con[3]
 
-    #网卡速度
+    # 网卡速度
     stdin, stdout, stderr = ssh.exec_command(' sar -n DEV  1 1')
     lines = stdout.readlines()
-    Average={}
+    Average = {}
     for line in lines:
         if 'Average' in line and 'IFACE' not in line:
-            line1=' '.join(line.split()).split(" ")
-            Average[line1[1]]=u'下载速度:'+str(line1[4])+' kb/s'+u'  上传速度:'+str(line1[5])+' kb/s'
-
+            line1 = ' '.join(line.split()).split(" ")
+            Average[line1[1]] = u'下载速度:' + str(line1[4]) + ' kb/s' + u'  上传速度:' + str(line1[5]) + ' kb/s'
 
     stdin, stdout, stderr = ssh.exec_command("netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'")
     lines = stdout.readlines()
-    netstat={}
-    netstat['ESTABLISHED'],netstat['CLOSE_WAIT'],netstat['TIME_WAIT'],netstat['SYN_RECV'],netstat['FIN_WAIT1'],netstat['FIN_WAIT2']=0,0,0,0,0,0
+    netstat = {}
+    netstat['ESTABLISHED'], netstat['CLOSE_WAIT'], netstat['TIME_WAIT'], netstat['SYN_RECV'], netstat['FIN_WAIT1'], \
+    netstat['FIN_WAIT2'] = 0, 0, 0, 0, 0, 0
     for line in lines:
-        line1=line.split(" ")
-        netstat[line1[0]]=line1[1]
+        line1 = line.split(" ")
+        netstat[line1[0]] = line1[1]
 
-    #服务器连接数
-    cursors = conn.cursor()
-    cursors.execute('SHOW FULL PROCESSLIST')
-    dbdata = cursors.fetchall()
-    mysqlnum=len(dbdata)
+    # 服务器连接数
+    try:
+        db = common.cfg(filecfg, 'mysql')
+        conn = pymysql.connect(host=db.query('host'), user=db.query('user'), passwd=db.query('passwd'),
+                               db=db.query('db'), charset=db.query('charset'))
+        cursors = conn.cursor()
+        cursors.execute('SHOW FULL PROCESSLIST')
+        dbdata = cursors.fetchall()
+        mysqlnum = len(dbdata)
+    except Exception:
+        mysqlnum = '数据库连接失败'
 
     try:
-        reidinfo=pool.info()
-        reidslsit={}
-        reidslsit['qps']=reidinfo['instantaneous_ops_per_sec']
-        reidslsit['keyspace_misses']=reidinfo['keyspace_misses']
-        reidslsit['used_memory']=reidinfo['used_memory_human']
-        reidslsit['blocked_clients']=reidinfo['blocked_clients']
-        reidslsit['connected_clients']=reidinfo['connected_clients']
+        reidinfo = pool.info()
+        reidslsit = {}
+        reidslsit['qps'] = reidinfo['instantaneous_ops_per_sec']
+        reidslsit['keyspace_misses'] = reidinfo['keyspace_misses']
+        reidslsit['used_memory'] = reidinfo['used_memory_human']
+        reidslsit['blocked_clients'] = reidinfo['blocked_clients']
+        reidslsit['connected_clients'] = reidinfo['connected_clients']
     except Exception:
-        reidslsit={}
-        reidslsit['qps']='redis连接失败'
+        reidslsit = {}
+        reidslsit['qps'] = 'redis连接失败'
 
-
-
-
-    serverlist['reidslsit']=reidslsit
-    serverlist['netstat']=netstat
-    serverlist['Average']=Average
-    serverlist['memory']=memory
-    serverlist['loadavg']=loadavg
-    serverlist['mysqlnum']=mysqlnum
+    serverlist['reidslsit'] = reidslsit
+    serverlist['netstat'] = netstat
+    serverlist['Average'] = Average
+    serverlist['memory'] = memory
+    serverlist['loadavg'] = loadavg
+    serverlist['mysqlnum'] = mysqlnum
 
     return jsonify(serverlist)
 

@@ -1,4 +1,5 @@
 # coding=utf-8
+import json
 import os
 import random
 import sqlite3
@@ -8,11 +9,12 @@ import common
 
 def postdata():
     sqlite3conn = sqlite3.connect('locust.db',check_same_thread=False)
+    sqlite3conn.text_factory=str
     sqlite3cursors=sqlite3conn.cursor()
     data=sqlite3cursors.execute('SELECT * FROM Interface').fetchall()
     list = []
     for row in data:
-        if row[3] == 0:
+        if row[3] == 1:
             key = [row[1], eval(row[2])]
             list.append(key)
     return list
@@ -35,7 +37,7 @@ class WebsiteTasks(TaskSet):
                     if response.json()['h']['code']=='0':
                         response.success()
                     else:
-                        response.failure(response.text)
+                        response.failure(response.json())
                 except Exception as E:
                     response.failure('requests fail:{0}'.format(E))
             else:
@@ -47,7 +49,7 @@ class WebsiteUser(HttpLocust):
     config = common.cfg(file, 'locust')
     task_set = WebsiteTasks
     host = config.query('host')
-    ticketlist = common.exportTicket(num=int(config.query('ticketnum')))
+    # ticketlist = common.exportTicket(num=int(config.query('ticketnum')))
     postdata = postdata()
     min_waittime = int(config.query('min_waittime'))
     max_waittime = int(config.query('max_waittime'))

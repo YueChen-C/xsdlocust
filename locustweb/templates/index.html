@@ -60,7 +60,7 @@
                                 &times;
                             </button>
                             <h4 class="modal-title" id="myModalLabel">
-                                用户信息
+                                接口信息
                             </h4>
                         </div>
                         <div class="modal-body">
@@ -116,7 +116,7 @@
             {% endfor %}
             <td colspan="4" align="right">
                 <form action="/" method="post">
-                    <input class="btn btn-primary" type="submit" name="ticket" value="刷新登录信息" onclick="Openloader();">
+{#                    <input class="btn btn-primary" type="submit" name="ticket" value="刷新登录信息" onclick="Openloader();">#}
                     <input class="btn btn-primary" type="submit" name="test" value="测试所选接口" onclick="Openloader();">
                     {% if louststatus %}
                         <input class="btn btn-danger" type="submit" name="killlocust" value="停止locust服务"
@@ -162,7 +162,6 @@
 
 
     {% endif %}
-
 
 
 {% endblock %}
