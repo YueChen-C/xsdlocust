@@ -81,43 +81,43 @@ def datalist():
     return list
 
 
-#
-# class rongcloud():
-#     def __init__(self):
-#         rongcfg = common.cfg(filecfg, 'rongyun')
-#         app_key = rongcfg.query('app_key')
-#         app_secret = rongcfg.query('app_secret')
-#         self.rcloud = RongCloud(app_key, app_secret)
-#
-#     def rongcheckOnline(self, useridlist):
-#         userlsit = []
-#         for userid in useridlist:
-#             r = self.rcloud.User.checkOnline(userId=userid)
-#             if r.get().get('status') == '1':
-#                 userlsit.append(userid)
-#         return userlsit
-#
-#     def rongpublishChatroom(self, textdata, time):
-#         global timer
-#         global kill
-#         content = {'content': {
-#             'content': '{0}'.format(json.dumps(textdata['text'], ensure_ascii=False)),
-#             'userAction': 1,
-#             'server': '{0}'.format(json.dumps(textdata['server'], ensure_ascii=False))
-#         }}
-#         r = self.rcloud.Message.publishChatroom(
-#                 fromUserId=textdata['server']['imAccount'],
-#                 toChatroomId={textdata['server']['roomId']},
-#                 objectName='RC:TxtMsg',
-#                 content="{0}".format(json.dumps(content, ensure_ascii=False)))
-#         print(r)
-#         if kill == True:
-#             timer = threading.Timer(1 / float(time), self.rongpublishChatroom, [textdata, time])
-#             timer.start()
-#         else:
-#             timer.cancel()
-#             timer = None
-#             kill = True
+
+class rongcloud():
+    def __init__(self):
+        rongcfg = common.cfg(filecfg, 'rongyun')
+        app_key = rongcfg.query('app_key')
+        app_secret = rongcfg.query('app_secret')
+        self.rcloud = RongCloud(app_key, app_secret)
+
+    def rongcheckOnline(self, useridlist):
+        userlsit = []
+        for userid in useridlist:
+            r = self.rcloud.User.checkOnline(userId=userid)
+            if r.get().get('status') == '1':
+                userlsit.append(userid)
+        return userlsit
+
+    def rongpublishChatroom(self, textdata, time):
+        global timer
+        global kill
+        content = {'content': {
+            'content': '{0}'.format(json.dumps(textdata['text'], ensure_ascii=False)),
+            'userAction': 1,
+            'server': '{0}'.format(json.dumps(textdata['server'], ensure_ascii=False))
+        }}
+        r = self.rcloud.Message.publishChatroom(
+                fromUserId=textdata['server']['imAccount'],
+                toChatroomId={textdata['server']['roomId']},
+                objectName='RC:TxtMsg',
+                content="{0}".format(json.dumps(content, ensure_ascii=False)))
+        print(r)
+        if kill == True:
+            timer = threading.Timer(1 / float(time), self.rongpublishChatroom, [textdata, time])
+            timer.start()
+        else:
+            timer.cancel()
+            timer = None
+            kill = True
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -205,13 +205,7 @@ def index():
         psutillist=psutil.process_iter(attrs=['pid', 'name'])
         for proc in psutillist:
              if 'locust' in proc.info['name'] :
-
                 p = psutil.Process(proc.info['pid'])
-                print(p.pid)
-                print(p.ppid())
-                # print(psutil.Process(p.ppid()).terminate())
-                # print(p.parent().send_signal('CTRL_C_EVENT'))
-                print(p.children())
                 psutil.Process(p.children()[0].pid).terminate()
             # if 'locust' in proc.info['name']:
             #     # p = psutil.Process(proc.info['pid'])
@@ -346,77 +340,77 @@ def Saveinterface():
     return jsonify(code)
 
 
-# timer = None
-# kill = True
-#
-#
-# @app.route('/zhibo', methods=['GET', 'POST'])
-# def zhibo():
-#     global timer
-#     peoplenum = []
-#     roomlist = []
-#     messagedata = request.form.get('data')
-#     rongc = rongcloud()
-#     try:
-#         locustcfg = common.cfg(filecfg, 'locust')
-#         url = locustcfg.query('HOST') + "/platform-rest/service.jws"
-#         home = common.liveHome
-#         data = requests.post(url=url, json=home).json()
-#         disport = data['b']['data']['liveList']
-#
-#         for live in disport:
-#             if live['state'] == 1:
-#                 roomlist.append([live['liveId'], live['title'], live['watchNumStr']])
-#         rongkeys = pool.keys('l-imAccount-map*')
-#         ronglist = []
-#         for rong in rongkeys:
-#             ronglist.append(rong.split(':')[1])
-#         peoplenum = rongc.rongcheckOnline(ronglist)
-#     except Exception as E:
-#         flash(u'警告：请求错误{0 }'.format(E), 'danger')
-#         return render_template('zhibo.html', roomlist=roomlist, peoplenum=len(peoplenum))
-#
-#     if messagedata:
-#         messagedata = messagedata.encode('unicode-escape').decode('string_escape')
-#         messagedata = json.loads(messagedata)
-#
-#         def killtimer():
-#             global kill
-#             kill = False
-#
-#         if not messagedata.get('liveID'):
-#             flash(u'警告：请选择直播间', 'warning')
-#             return render_template('zhibo.html', roomlist=roomlist, peoplenum=len(peoplenum))
-#
-#         if timer:
-#             flash(u'警告：正在执行任务请先结束当前任务', 'warning')
-#         else:
-#             timer = threading.Timer(0.1, rongc.rongpublishChatroom, [common.PTdata, messagedata['frequency']])
-#             timer.start()
-#             timer1 = threading.Timer(int(messagedata['time']), killtimer)
-#             timer1.start()
-#         return render_template('zhibo.html', roomlist=roomlist, peoplenum=len(peoplenum))
-#
-#     kill = request.form.get('kill')
-#     if kill:
-#         if timer:
-#             print(timer, 'ceshi')
-#             timer.cancel()
-#             timer = None
-#             kill = True
-#         else:
-#             flash(u'警告：没有正在执行的任务', 'warning')
-#
-#     # home['b']['type']='金融产业'
-#     # data=requests.post(url=url, json=home).json()
-#     # Finance=data['b']['data']['liveList']
-#     # for i in Finance:
-#     #     if i['state']==1:
-#     #         roomlist.append([i['liveId'],i['title']])
-#
-#     return render_template('zhibo.html',
-#                            roomlist=roomlist,
-#                            peoplenum=len(peoplenum))
+timer = None
+kill = True
+
+
+@app.route('/zhibo', methods=['GET', 'POST'])
+def zhibo():
+    global timer
+    peoplenum = []
+    roomlist = []
+    messagedata = request.form.get('data')
+    rongc = rongcloud()
+    try:
+        locustcfg = common.cfg(filecfg, 'locust')
+        url = locustcfg.query('HOST') + "/platform-rest/service.jws"
+        home = common.liveHome
+        data = requests.post(url=url, json=home).json()
+        disport = data['b']['data']['liveList']
+
+        for live in disport:
+            if live['state'] == 1:
+                roomlist.append([live['liveId'], live['title'], live['watchNumStr']])
+        rongkeys = pool.keys('l-imAccount-map*')
+        ronglist = []
+        for rong in rongkeys:
+            ronglist.append(rong.split(':')[1])
+        peoplenum = rongc.rongcheckOnline(ronglist)
+    except Exception as E:
+        flash(u'警告：请求错误{0 }'.format(E), 'danger')
+        return render_template('zhibo.html', roomlist=roomlist, peoplenum=len(peoplenum))
+
+    if messagedata:
+        messagedata = messagedata.encode('unicode-escape').decode('string_escape')
+        messagedata = json.loads(messagedata)
+
+        def killtimer():
+            global kill
+            kill = False
+
+        if not messagedata.get('liveID'):
+            flash(u'警告：请选择直播间', 'warning')
+            return render_template('zhibo.html', roomlist=roomlist, peoplenum=len(peoplenum))
+
+        if timer:
+            flash(u'警告：正在执行任务请先结束当前任务', 'warning')
+        else:
+            timer = threading.Timer(0.1, rongc.rongpublishChatroom, [common.PTdata, messagedata['frequency']])
+            timer.start()
+            timer1 = threading.Timer(int(messagedata['time']), killtimer)
+            timer1.start()
+        return render_template('zhibo.html', roomlist=roomlist, peoplenum=len(peoplenum))
+
+    kill = request.form.get('kill')
+    if kill:
+        if timer:
+            print(timer, 'ceshi')
+            timer.cancel()
+            timer = None
+            kill = True
+        else:
+            flash(u'警告：没有正在执行的任务', 'warning')
+
+    # home['b']['type']='金融产业'
+    # data=requests.post(url=url, json=home).json()
+    # Finance=data['b']['data']['liveList']
+    # for i in Finance:
+    #     if i['state']==1:
+    #         roomlist.append([i['liveId'],i['title']])
+
+    return render_template('zhibo.html',
+                           roomlist=roomlist,
+                           peoplenum=len(peoplenum))
 
 
 @app.route('/jiankong', methods=['GET', 'POST'])

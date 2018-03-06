@@ -56,10 +56,7 @@ def ThreadStartone(method,retcode, num):
         print >> sys.stderr,t
 
 def opencpu(retcode):
-    if 'Windows' in platform.system():
-        lcoustserver="locust --slave -f {0}/test.py --master-host={1}".format(os.path.dirname(os.path.realpath(__file__)),retcode)
-    else:
-        lcoustserver="locust --slave -f {0}/test.py --master-host={1}".format(os.path.dirname(os.path.realpath(__file__)),retcode)
+    lcoustserver="locust --slave -f {0}/test.py --master-host={1}".format(os.path.dirname(os.path.realpath(__file__)),retcode)
     subprocess.call(lcoustserver,shell = True)
 
 
